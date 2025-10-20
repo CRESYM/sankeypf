@@ -27,3 +27,5 @@ end
 RichCase(gc::T, bus_orig::String, drawparams::Dict{Symbol,Any}=Dict{Symbol,Any}()) where T<:GridCase =
     RichCase(gc, bus_orig, drawparams, nothing)
 
+RichCase(g::MetaGraph, bus_orig::String, drawparams::Dict{Symbol,Any}=Dict{Symbol,Any}()) =
+    RichCase(ElementaryCase(g), bus_orig, drawparams, nothing)

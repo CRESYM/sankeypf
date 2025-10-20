@@ -141,10 +141,13 @@ function draw_sankey(g, ϕ, flows, Y_center, y_offset, outages, stretch, ax)
         col = lift(loadratio) do loadratio
             to_value(loadratio) ≤ 0.8 ? :green : to_value(loadratio) ≤ 1. ? :orange : :red
         end
+        strokecol = lift(outages) do outages
+            br in to_value(outages)[1] ? :black : :transparent
+        end
         path = lift(_Y_center, y_offset, ϕ, p) do Y_center, Y_offset, ϕ, p
             _band_path(ϕ[f], ϕ[t], Y_center[f] + Y_offset[f][t], Y_center[t] + Y_offset[t][f], p)
         end
-        poly!(ax, path, color=col, alpha=0.5, strokewidth=2, strokecolor=br in outages ? :black : :transparent)
+        poly!(ax, path, color=col, alpha=0.5, strokewidth=2, strokecolor=strokecol)
 
         alpha = lift(loadratio) do loadratio
             to_value(loadratio) ≤ 1 ? 0. : 0.5
@@ -186,7 +189,6 @@ function draw_sankey(g, ϕ, flows, Y_center, y_offset, outages, stretch, ax)
         end
         text!(ax, ϕ_bus, yc; text=bus)
     end
-    @info "Drawing finished"
 end
 
 function random_reset_Y_center(sankeywidget)
@@ -233,11 +235,13 @@ function add_run_button(skWidget, subfig)
 
     on(run.clicks) do clicks
         @async while isrunning[]
+            # isopen(fig.scene) || break # ensures computations stop if closed window
             update_loop(skWidget, skWidget.tan_strength, skWidget.d_repulse)
             yield()
         end
     end
     @async while isrunning[]
+        # isopen(fig.scene) || break # ensures computations stop if closed window
         update_loop(skWidget, skWidget.tan_strength, skWidget.d_repulse)
         yield()
     end
@@ -257,10 +261,34 @@ function change_flows_state!(sankeywidget, ϕ::Dict{VLabel,Float64}, flows::Dict
     sankeywidget.step[] = 0
 end
 
+function parse_elabels(s::AbstractString)::Vector{ELabel}
+    result = ELabel[]
+    for part in split(s, ',')
+        part = strip(part)
+        fields = split(part, '-', limit=2)
+        if length(fields) == 2
+            f,t = strip(fields[1]), strip(fields[2])
+            push!(result, f≤t ? (f,t) : (t,f))
+        end
+    end
+    return result
+end
 
-function pf_sankey(g::MetaGraph, ϕ::Dict{VLabel,Float64}, flows::Dict{ELabel,Float64}, Y_center::Dict{VLabel,Float64}, Y_offset::Dict{VLabel,Dict{VLabel,Float64}}; outages=ELabel[], fig=nothing, stretch=1., tan_strength=4e-2, d_repulse=4e-3)
-    _fig = isnothing(fig) ? Figure(size=(800, 500)) : fig
-    ax = Axis(_fig[1, 1:2])
+function addOutagesWidget(skWidget, glOutages)
+    Label(glOutages[1, 1], "Outages ")
+    # tbOutages = Textbox(glOutages[1, 2], validator=r"^\s*(?:[^,\s-]+-[^,\s-]+)?(?:\s*,\s*[^,\s-]+-[^,\s-]+)*\s*$", stored_string=join([string(br[1], "-", br[2]) for br in skWidget.outages], ", "))
+    tbOutages = Textbox(glOutages[1, 2], validator=r"^\s*(?:[^,\s-]+-[^,\s-]+)?(?:\s*,\s*[^,\s-]+-[^,\s-]+)*\s*$", stored_string=" ")
+    on(tbOutages.stored_string) do s
+        outages = Set(parse_elabels(s))
+        pf_res = dcpf(skWidget.rc; outages=outages)#, [("49","66")])
+        to_value(skWidget.outages)[1] = outages
+        notify(skWidget.outages)
+        change_flows_state!(skWidget, pf_res.ϕ, pf_res.flows)
+    end
+end
+
+function pf_sankey(rc::RichCase, ϕ::Dict{VLabel,Float64}, flows::Dict{ELabel,Float64}, Y_center::Dict{VLabel,Float64}, Y_offset::Dict{VLabel,Dict{VLabel,Float64}}; outages=Set(ELabel[]), fig=nothing, stretch=1., tan_strength=4e-2, d_repulse=4e-3)
+    g = rc.gc.g
 
     _Y_center = Observable(Y_center)
     _Y_offset = Observable(Y_offset)
@@ -275,59 +303,49 @@ function pf_sankey(g::MetaGraph, ϕ::Dict{VLabel,Float64}, flows::Dict{ELabel,Fl
         _create_maxpmax(sfpd, flows)
     end
 
+    _fig = isnothing(fig) ? Figure(size=(800, 500)) : fig
+    ax = Axis(_fig[1, 1:2])
     glSliders = GridLayout(_fig[1, 3])
+    glButtons = GridLayout(_fig[2, 3])
+    glOutages = GridLayout(_fig[2, 1])
+
     function _create_slider(glpos, title, range, startval)
         Label(glSliders[1, glpos], title)
         sl = Slider(glSliders[2, glpos], range=range, horizontal=false, startvalue=startval)
         Label(glSliders[3, glpos], @lift(string($(sl.value))))
         sl.value
     end
-
     sl_stretch = _create_slider(1, "Stretch", 0:0.01:10, stretch)
     sl_d_repulse = _create_slider(2, "Repulse", 0:0.01:5, 2)
     sl_d_align = _create_slider(3, "Align", 0:0.01:5, 3)
 
-    draw_sankey(g, _ϕ, _flows, _Y_center, _Y_offset, outages, sl_stretch, ax)
+    mutable_outages = Observable([outages])
 
-    rowsize!(_fig.layout, 1, Auto())
+    draw_sankey(g, _ϕ, _flows, _Y_center, _Y_offset, mutable_outages, sl_stretch, ax)
 
-    sk_widget = (fig=_fig, ax=ax, g=g, ϕ=_ϕ, flows=_flows, separate_flows_per_direction=sfpd, maxpmax=maxpmax, Y_center=_Y_center, Y_offset=_Y_offset,
+    sk_widget = (fig=_fig, ax=ax, rc=rc, g=g, ϕ=_ϕ, flows=_flows, outages=mutable_outages, separate_flows_per_direction=sfpd, maxpmax=maxpmax, Y_center=_Y_center, Y_offset=_Y_offset,
         prev_ϕ=copy(ϕ), prev_flows=copy(flows),
         next_ϕ=copy(ϕ), next_flows=copy(flows),
-        # tan_strength=Observable(tan_strength),
-        tan_strength=@lift(exp10($sl_d_align-5)),
-        d_repulse=@lift(exp10($sl_d_repulse-5)),
-        # d_repulse=Observable(d_repulse),
+        tan_strength=@lift(exp10($sl_d_align - 5)),
+        d_repulse=@lift(exp10($sl_d_repulse - 5)),
         nb_transition_steps=20, step=Observable(0), stretch=stretch)
 
-    isrunning = add_run_button(sk_widget, _fig[2, 1])
-    close = Button(_fig[2, 2], label="close", tellwidth=false)
+    add_run_button(sk_widget, glButtons[1, 1])
+    close = Button(glButtons[1, 2], label="close", tellwidth=false)
     on(close.clicks) do n
         GLMakie.closeall()
     end
+
+    addOutagesWidget(sk_widget, glOutages)
 
     isnothing(fig) && display(_fig)
     return sk_widget
 end
 
-function pf_sankey(g::MetaGraph, ϕ::Dict{VLabel,Float64}, flows::Dict{ELabel,Float64}; kwargs...)
-    Y = init_Y(g)
-    sankeywidget = pf_sankey(g, ϕ, flows, Y.Y_center, Y.Y_offset; kwargs...)
+function pf_sankey(rc::RichCase, ϕ::Dict{VLabel,Float64}, flows::Dict{ELabel,Float64}; kwargs...)
+    Y = init_Y(rc.gc.g)
+    sankeywidget = pf_sankey(rc, ϕ, flows, Y.Y_center, Y.Y_offset; kwargs...)
     random_reset_Y_center(sankeywidget)
     sankeywidget
 end
-
-# function pf_sankey(rc::RichCase, m::Model, case::String=BASECASEID; kwargs...)
-#     g = rc.gc.g
-#     ϕ_res = Dict(bus => value.(m_res[:ϕ][case, bus]) for bus in labels(g))
-#     flows_res = Dict(edge => value.(m_res[:flows][case, edge...]) for edge in edge_labels(g))
-#     h = copy(g)
-#     if case ≠ BASECASEID
-#         for bus in labels(g)
-#             round(value(m_res[:π][case, bus])) == 0. && delete!(h, bus)
-#         end
-#     end
-#     pf_sankey(h, ϕ_res, flows_res; kwargs...)
-# end
-
 
