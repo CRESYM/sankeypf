@@ -55,27 +55,6 @@ This will open an interactive window showing a sample power flow diagram.
 
 ---
 
-## ⚙️ Development
-
-To work on this package locally:
-
-```julia
-using Pkg
-Pkg.develop(url="https://github.com/BenoitJeanson/sankeypf.git")
-```
-
-You can then make changes under `src/` and test them with the examples.
-
----
-
-## 🧩 Dependencies
-
-- [GLMakie.jl](https://github.com/MakieOrg/Makie.jl) – for interactive graphics
-- [GeometryBasics.jl](https://github.com/JuliaGeometry/GeometryBasics.jl)
-- Standard Julia packages: `LinearAlgebra`, `Statistics`, `Random`, etc.
-
----
-
 ## 📜 License
 
 This project is released under the [APACHE 2.0](LICENSE).
