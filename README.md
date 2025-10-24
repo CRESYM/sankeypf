@@ -1,84 +1,77 @@
-# 🚀 Guide de démarrage rapide – Projet Julia
+# PFSankey.jl
 
-## 1️⃣ Installer Julia
-1. Rendez-vous sur le site officiel : [https://julialang.org/downloads/](https://julialang.org/downloads/)  
-2. Téléchargez la version correspondant à votre système (Windows / macOS / Linux).  
-3. Installez Julia en suivant les instructions par défaut.  
-   > 💡 Sous Windows, vous pouvez cocher **« Ajouter Julia au PATH »** pour plus de commodité.
+**PFSankey.jl** is a Julia package for visualizing **power flow data** using interactive **Sankey diagrams**.  
+It provides a convenient interface for exploring how power flows through networks, with nodes and branches rendered dynamically using [GLMakie](https://makie.juliaplots.org/stable/).
 
----
-
-## 2️⃣ Extraire le projet
-1. Décompressez le fichier `.zip` que vous avez reçu (par exemple sur votre Bureau).  
-2. Vous devriez obtenir une structure comme ceci :
-   ```
-   MonProjet/
-   ├── Project.toml
-   ├── src/
-   └── demo/
-       └── demo.jl
-   ```
+It is developed under [CRESYM-OptGrid](https://cresym.eu/optgrid/) project supervised by TU-Delft and sponsored by RTE.
 
 ---
 
-## 3️⃣ Activer et instancier l’environnement
+## 🚀 Features
 
-### 🔹 Option 1 — Depuis la console Julia
-1. Ouvrez **Julia**.  
-2. Déplacez-vous dans le dossier du projet :
-   ```julia
-   cd("C:/Users/VotreNom/Bureau/MonProjet")
-   ```
-3. Entrez dans le gestionnaire de paquets (tapez `]` dans le REPL), puis :
-   ```julia
-   activate .
-   instantiate
-   ```
-   Cela active l’environnement du projet et installe toutes les dépendances.
+- Generate Sankey diagrams for power flow analysis.
+- Automatic scaling and layout based on flow magnitudes.
+- Smooth integration with Makie visualization tools.
 
 ---
 
-### 🔹 Option 2 — Depuis VS Code
-1. Ouvrez **Visual Studio Code**.  
-2. Installez l’extension **Julia** si ce n’est pas déjà fait.  
-3. Ouvrez le dossier du projet (**Fichier → Ouvrir le dossier...**).  
-4. Le terminal Julia intégré détectera automatiquement l’environnement,  
-   **mais il faut encore l’instancier manuellement** :
-   ```julia
-   import Pkg
-   Pkg.instantiate()
-   ```
-   ➜ Cela installe toutes les dépendances définies dans `Project.toml`.
+## 📦 Installation
 
----
+This package is not yet registered, but you can install it directly from GitHub:
 
-## 4️⃣ Lancer la démo
-Une fois l’environnement prêt, lancez simplement :
 ```julia
-include("demo/demo.jl")
+using Pkg
+Pkg.add(url="https://github.com/BenoitJeanson/pfsankey.git")
 ```
 
-✅ Le script de démonstration s’exécutera avec toutes les bibliothèques déjà installées.
+Then load it in Julia:
+
+```julia
+using PFSankey
+```
 
 ---
 
-## 5️⃣ En cas de problème
+## 🧠 Basic Usage
 
-- **`UndefVarError: Pkg not defined`**  
-  → Tapez d’abord `using Pkg` avant `Pkg.instantiate()`.
+Example scripts can be found in the [`examples/`](./examples) directory.  
+To run a demonstration:
 
-- **Erreur de chemin (`cd`)**  
-  → Vérifiez que le dossier entre guillemets correspond bien à l’endroit où vous avez extrait le projet.
+```julia
+include("examples/demo.jl")
+```
 
-- **Problème de dépendances**  
-  → Essayez de relancer Julia et de refaire :
-  ```julia
-  import Pkg
-  Pkg.activate(".")
-  Pkg.instantiate()
-  ```
+This will open an interactive window showing a sample power flow diagram.
 
 ---
 
-🧠 *Julia crée un environnement isolé pour chaque projet.  
-Une fois instancié, vous n’aurez plus à refaire cette étape sauf si de nouvelles dépendances sont ajoutées.*
+## ⚙️ Development
+
+To work on this package locally:
+
+```julia
+using Pkg
+Pkg.develop(url="https://github.com/BenoitJeanson/pfsankey.git")
+```
+
+You can then make changes under `src/` and test them with the examples.
+
+---
+
+## 🧩 Dependencies
+
+- [GLMakie.jl](https://github.com/MakieOrg/Makie.jl) – for interactive graphics
+- [GeometryBasics.jl](https://github.com/JuliaGeometry/GeometryBasics.jl)
+- Standard Julia packages: `LinearAlgebra`, `Statistics`, `Random`, etc.
+
+---
+
+## 📜 License
+
+This project is released under the [APACHE 2.0](LICENSE).
+
+---
+
+## 📧 Contact
+
+For issues, suggestions, or contributions, please open an [issue](https://github.com/BenoitJeanson/pfsankey/issues) or submit a pull request.
