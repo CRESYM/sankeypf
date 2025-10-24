@@ -1,6 +1,6 @@
-# PFSankey.jl
+# SankyPF.jl
 
-**PFSankey.jl** is a Julia package for visualizing **power flow data** using interactive **Sankey diagrams**.  
+**SankeyPF.jl** is a Julia package for visualizing **power flow data** using interactive **Sankey diagrams**.  
 It provides a convenient interface for exploring how power flows through networks, with nodes and branches rendered dynamically using [GLMakie](https://makie.juliaplots.org/stable/).
 
 It is developed under [CRESYM-OptGrid](https://cresym.eu/optgrid/) project supervised by TU-Delft and sponsored by RTE.
@@ -17,17 +17,27 @@ It is developed under [CRESYM-OptGrid](https://cresym.eu/optgrid/) project super
 
 ## 📦 Installation
 
-This package is not yet registered, but you can install it directly from GitHub:
+Clone this repository locally:
+
+```bash
+git clone https://github.com/BenoitJeanson/sankeypf.git
+cd sankeypf
+```
+
+Then open Julia and activate the local project environment:
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/BenoitJeanson/pfsankey.git")
+Pkg.activate(".")
+Pkg.instantiate()
 ```
 
-Then load it in Julia:
+This will install all required dependencies listed in `Project.toml`.
+
+Once the environment is instantiated, you can load the package with:
 
 ```julia
-using PFSankey
+using SankeyPF
 ```
 
 ---
@@ -51,7 +61,7 @@ To work on this package locally:
 
 ```julia
 using Pkg
-Pkg.develop(url="https://github.com/BenoitJeanson/pfsankey.git")
+Pkg.develop(url="https://github.com/BenoitJeanson/sankeypf.git")
 ```
 
 You can then make changes under `src/` and test them with the examples.
@@ -74,4 +84,4 @@ This project is released under the [APACHE 2.0](LICENSE).
 
 ## 📧 Contact
 
-For issues, suggestions, or contributions, please open an [issue](https://github.com/BenoitJeanson/pfsankey/issues) or submit a pull request.
+For issues, suggestions, or contributions, please open an [issue](https://github.com/BenoitJeanson/sankeypf/issues) or submit a pull request.
