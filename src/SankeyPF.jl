@@ -21,7 +21,7 @@ export GridCase, ElementaryCase, RichCase
 export dcpf, dcpf!, SA_result, secured_dcpf, flow, violated_branches, max_overload, eval_risk
 
 # DrawSankey
-export pf_sankey, add_run_button, change_flows_state!
+export pf_sankey, run_button, change_flows_state!
 
 # Utils
 export create_case

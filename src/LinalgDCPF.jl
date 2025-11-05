@@ -221,12 +221,19 @@ function violated_branches(sr::SA_result, g::MetaGraph, contingency::ELabel)::Se
     branches
 end
 
+function violated_branches(sr::SA_result, g::MetaGraph)::Dict{ELabel, Set{ELabel}}
+    ctg_to_vbrs = Dict{ELabel, Set{ELabel}}()
+    for ctg in keys(sr.contingencies)
+        vbrs = violated_branches(sr, g, ctg)
+        !isempty(vbrs) && (ctg_to_vbrs[ctg] = vbrs)
+    end
+    ctg_to_vbrs
+end
 
 function max_overload(sr::SA_result, g::MetaGraph, contingency::ELabel, branches::Vector{ELabel})
     maxval, index = findmax(br -> abs(flow(sr, contingency, br)) / g[br...].p_max, branches)
     maxval, branches[index]
 end
-
 
 function eval_risk(rc, openings)
     b2p = create_bridge_to_pocket(rc.gc.g, rc.bus_orig, openings)
