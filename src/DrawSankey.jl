@@ -1,3 +1,5 @@
+const EMPTYBRANCH = ("", "")
+
 buses_to_branch_val(val::Dict{ELabel,<:Any}, bus1, bus2) = haskey(val, (bus1, bus2)) ? val[bus1, bus2] : val[bus2, bus1]
 
 function separate_flows_per_direction(g, flows, bus)
@@ -191,41 +193,48 @@ function draw_sankey(g, ϕ, flows, Y_center, y_offset, outages, stretch, ax)
     end
 end
 
-function random_reset_Y_center(sankeywidget)
-    for bus in keys(to_value(sankeywidget.Y_center))
-        to_value(sankeywidget.Y_center)[bus] = rand() - 0.5
+function random_reset_Y_center(sk_widget)
+    for bus in keys(to_value(sk_widget.Y_center))
+        to_value(sk_widget.Y_center)[bus] = rand() - 0.5
     end
-    notify(sankeywidget.Y_center)
+    notify(sk_widget.Y_center)
 end
 
-function transit_flows_state!(sankeywidget)
-    to_value(sankeywidget.step) == sankeywidget.nb_transition_steps && return
-    sankeywidget.step[] = to_value(sankeywidget.step) + 1
-    step = to_value(sankeywidget.step)
+function transit_flows_state!(sk_widget)
+    to_value(sk_widget.step) == sk_widget.nb_transition_steps && return
+    sk_widget.step[] = to_value(sk_widget.step) + 1
+    step = to_value(sk_widget.step)
     foreach(bus ->
-            to_value(sankeywidget.ϕ)[bus] =
-                (sankeywidget.next_ϕ[bus] * step +
-                 sankeywidget.prev_ϕ[bus] * (sankeywidget.nb_transition_steps - step)) /
-                sankeywidget.nb_transition_steps,
-        labels(sankeywidget.g))
+            to_value(sk_widget.ϕ)[bus] =
+                (sk_widget.next_ϕ[bus] * step +
+                 sk_widget.prev_ϕ[bus] * (sk_widget.nb_transition_steps - step)) /
+                sk_widget.nb_transition_steps,
+        labels(sk_widget.g))
     foreach(br ->
-            to_value(sankeywidget.flows)[br...] =
-                (sankeywidget.next_flows[br...] * step +
-                 sankeywidget.prev_flows[br...] * (sankeywidget.nb_transition_steps - step)) /
-                sankeywidget.nb_transition_steps,
-        edge_labels(sankeywidget.g))
-    notify(sankeywidget.ϕ)
-    notify(sankeywidget.flows)
+            to_value(sk_widget.flows)[br...] =
+                (sk_widget.next_flows[br...] * step +
+                 sk_widget.prev_flows[br...] * (sk_widget.nb_transition_steps - step)) /
+                sk_widget.nb_transition_steps,
+        edge_labels(sk_widget.g))
+    notify(sk_widget.ϕ)
+    notify(sk_widget.flows)
 end
 
-function update_loop(sankeywidget, tan_strength, d_repulse)
-    transit_flows_state!(sankeywidget)
-    rearrange_Y_center(sankeywidget.ϕ, sankeywidget.flows, sankeywidget.Y_center, sankeywidget.Y_offset, sankeywidget.separate_flows_per_direction, sankeywidget.maxpmax, tan_strength, d_repulse)
-    rearrange_y(sankeywidget.ϕ, sankeywidget.flows, sankeywidget.Y_center, sankeywidget.Y_offset, sankeywidget.separate_flows_per_direction, sankeywidget.maxpmax)
-    autolimits!(sankeywidget.ax)
+function update_loop(sk_widget, tan_strength, d_repulse)
+    transit_flows_state!(sk_widget)
+    rearrange_Y_center(sk_widget.ϕ, sk_widget.flows, sk_widget.Y_center, sk_widget.Y_offset, sk_widget.separate_flows_per_direction, sk_widget.maxpmax, tan_strength, d_repulse)
+    rearrange_y(sk_widget.ϕ, sk_widget.flows, sk_widget.Y_center, sk_widget.Y_offset, sk_widget.separate_flows_per_direction, sk_widget.maxpmax)
+    to_value(sk_widget.auto_scale)[1] && autolimits!(sk_widget.ax)
 end
 
-function add_run_button(skWidget, subfig)
+function autoscale_button(sk_widget, subfig)
+    autoscale = Button(subfig, label="autoscale", tellwidth=false)
+    on(autoscale.clicks) do n
+        to_value(sk_widget.auto_scale)[1] = !to_value(sk_widget.auto_scale)[1]
+    end
+end
+
+function run_button(sk_widget, subfig)
     run = Button(subfig, label="stop", tellwidth=false)
     isrunning = Observable(true)
     on(run.clicks) do n
@@ -236,17 +245,24 @@ function add_run_button(skWidget, subfig)
     on(run.clicks) do clicks
         @async while isrunning[]
             # isopen(fig.scene) || break # ensures computations stop if closed window
-            update_loop(skWidget, skWidget.tan_strength, skWidget.d_repulse)
+            update_loop(sk_widget, sk_widget.tan_strength, sk_widget.d_repulse)
             yield()
         end
     end
     @async while isrunning[]
         # isopen(fig.scene) || break # ensures computations stop if closed window
-        update_loop(skWidget, skWidget.tan_strength, skWidget.d_repulse)
+        update_loop(sk_widget, sk_widget.tan_strength, sk_widget.d_repulse)
         yield()
     end
 
     return isrunning
+end
+
+function close_button(subfig)
+    close = Button(subfig, label="close", tellwidth=false)
+    on(close.clicks) do n
+        GLMakie.closeall()
+    end
 end
 
 function change_flows_state!(sankeywidget, ϕ::Dict{VLabel,Float64}, flows::Dict{ELabel,Float64})
@@ -261,33 +277,64 @@ function change_flows_state!(sankeywidget, ϕ::Dict{VLabel,Float64}, flows::Dict
     sankeywidget.step[] = 0
 end
 
-function parse_elabels(s::AbstractString)::Vector{ELabel}
-    result = ELabel[]
-    for part in split(s, ',')
-        part = strip(part)
+function outages_widget(sk_widget, gl_outages)
+    function _parse_outages(s::AbstractString)::Set{ELabel}
+        result = Set{ELabel}()
+        for part in split(s, ',')
+            part = strip(part)
+            fields = split(part, '-', limit=2)
+            if length(fields) == 2
+                f, t = strip(fields[1]), strip(fields[2])
+                push!(result, parse(Int, f) ≤ parse(Int, t) ? (f, t) : (t, f))
+            end
+        end
+        return result
+    end
+
+    function _parse_tripping(s::AbstractString)
+        part = strip(s)
         fields = split(part, '-', limit=2)
         if length(fields) == 2
-            f,t = strip(fields[1]), strip(fields[2])
-            push!(result, f≤t ? (f,t) : (t,f))
+            f, t = strip(fields[1]), strip(fields[2])
+            return parse(Int, f) ≤ parse(Int, t) ? (f, t) : (t, f)
         end
+        return EMPTYBRANCH
     end
-    return result
-end
 
-function addOutagesWidget(skWidget, glOutages)
-    Label(glOutages[1, 1], "Outages ")
-    # tbOutages = Textbox(glOutages[1, 2], validator=r"^\s*(?:[^,\s-]+-[^,\s-]+)?(?:\s*,\s*[^,\s-]+-[^,\s-]+)*\s*$", stored_string=join([string(br[1], "-", br[2]) for br in skWidget.outages], ", "))
-    tbOutages = Textbox(glOutages[1, 2], validator=r"^\s*(?:[^,\s-]+-[^,\s-]+)?(?:\s*,\s*[^,\s-]+-[^,\s-]+)*\s*$", stored_string=" ")
+    function _update_topo(sk_widget)
+        tripping = to_value(sk_widget.tripping)[1] == EMPTYBRANCH ? nothing : to_value(sk_widget.tripping)[1]
+        outages = to_value(sk_widget.outages)[1]
+        pf_res = dcpf(sk_widget.rc; outages=outages, tripping=tripping)
+        change_flows_state!(sk_widget, pf_res.ϕ, pf_res.flows)
+    end
+
+    Label(gl_outages[1, 1], "Outages")
+    tbOutages = Textbox(gl_outages[1, 2], validator=r"^\s*(?:[^,\s-]+-[^,\s-]+)?(?:\s*,\s*[^,\s-]+-[^,\s-]+)*\s*$", stored_string=" ")
     on(tbOutages.stored_string) do s
-        outages = Set(parse_elabels(s))
-        pf_res = dcpf(skWidget.rc; outages=outages)#, [("49","66")])
-        to_value(skWidget.outages)[1] = outages
-        notify(skWidget.outages)
-        change_flows_state!(skWidget, pf_res.ϕ, pf_res.flows)
+        to_value(sk_widget.outages)[1] = _parse_outages(s)
+        notify(sk_widget.outages)
+        _update_topo(sk_widget)
+        sa_res = secured_dcpf(sk_widget.rc.gc, sk_widget.rc.bus_orig, to_value(sk_widget.outages)[1])
+        vbs = violated_branches(sa_res, sk_widget.rc.gc.g)
+        to_value(sk_widget.sa_result)[1] = join(["$ctg $(join([vb[1] * "-" * vb[2] for vb in vbs],", "))" for (ctg, vbs) in vbs], "\n")
+        notify(sk_widget.sa_result)
     end
+
+    Label(gl_outages[1, 3], "Tripping ")
+    tbTripping = Textbox(gl_outages[1, 4], validator=r"^\s*(?:[^,\s-]+-[^,\s-]+)?(?:\s*,\s*[^,\s-]+-[^,\s-]+)*\s*$", stored_string=" ")
+    on(tbTripping.stored_string) do s
+        to_value(sk_widget.tripping)[1] = _parse_tripping(s)
+        notify(sk_widget.tripping)
+        _update_topo(sk_widget)
+    end
+
+    sa_txt = lift(sk_widget.sa_result) do v
+        isempty(v) || v[1] == "" ? " " : string(v[1])
+    end
+    Label(gl_outages[1, 5], sa_txt)
 end
 
-function pf_sankey(rc::RichCase, ϕ::Dict{VLabel,Float64}, flows::Dict{ELabel,Float64}, Y_center::Dict{VLabel,Float64}, Y_offset::Dict{VLabel,Dict{VLabel,Float64}}; outages=Set(ELabel[]), fig=nothing, stretch=1., tan_strength=4e-2, d_repulse=4e-3)
+function pf_sankey(rc::RichCase, ϕ::Dict{VLabel,Float64}, flows::Dict{ELabel,Float64}, Y_center::Dict{VLabel,Float64}, Y_offset::Dict{VLabel,Dict{VLabel,Float64}}; outages=Set(ELabel[]), fig=nothing, stretch=1.)
     g = rc.gc.g
 
     _Y_center = Observable(Y_center)
@@ -305,14 +352,14 @@ function pf_sankey(rc::RichCase, ϕ::Dict{VLabel,Float64}, flows::Dict{ELabel,Fl
 
     _fig = isnothing(fig) ? Figure(size=(800, 500)) : fig
     ax = Axis(_fig[1, 1:2])
-    glSliders = GridLayout(_fig[1, 3])
-    glButtons = GridLayout(_fig[2, 3])
-    glOutages = GridLayout(_fig[2, 1])
+    gl_sliders = GridLayout(_fig[1, 3])
+    gl_buttons = GridLayout(_fig[2, 3])
+    gl_outages = GridLayout(_fig[2, 1])
 
     function _create_slider(glpos, title, range, startval)
-        Label(glSliders[1, glpos], title)
-        sl = Slider(glSliders[2, glpos], range=range, horizontal=false, startvalue=startval)
-        Label(glSliders[3, glpos], @lift(string($(sl.value))))
+        Label(gl_sliders[1, glpos], title)
+        sl = Slider(gl_sliders[2, glpos], range=range, horizontal=false, startvalue=startval)
+        Label(gl_sliders[3, glpos], @lift(string($(sl.value))))
         sl.value
     end
     sl_stretch = _create_slider(1, "Stretch", 0:0.01:10, stretch)
@@ -320,23 +367,26 @@ function pf_sankey(rc::RichCase, ϕ::Dict{VLabel,Float64}, flows::Dict{ELabel,Fl
     sl_d_align = _create_slider(3, "Align", 0:0.01:5, 3)
 
     mutable_outages = Observable([outages])
+    mutable_tripping = Observable([EMPTYBRANCH])
 
     draw_sankey(g, _ϕ, _flows, _Y_center, _Y_offset, mutable_outages, sl_stretch, ax)
 
-    sk_widget = (fig=_fig, ax=ax, rc=rc, g=g, ϕ=_ϕ, flows=_flows, outages=mutable_outages, separate_flows_per_direction=sfpd, maxpmax=maxpmax, Y_center=_Y_center, Y_offset=_Y_offset,
+    sk_widget = (fig=_fig, ax=ax, rc=rc, g=g, ϕ=_ϕ, flows=_flows,
+        outages=mutable_outages, tripping=mutable_tripping,
+        auto_scale=Observable([true]),
+        sa_result=Observable([""]),
+        separate_flows_per_direction=sfpd, maxpmax=maxpmax, Y_center=_Y_center, Y_offset=_Y_offset,
         prev_ϕ=copy(ϕ), prev_flows=copy(flows),
         next_ϕ=copy(ϕ), next_flows=copy(flows),
         tan_strength=@lift(exp10($sl_d_align - 5)),
         d_repulse=@lift(exp10($sl_d_repulse - 5)),
         nb_transition_steps=20, step=Observable(0), stretch=stretch)
 
-    add_run_button(sk_widget, glButtons[1, 1])
-    close = Button(glButtons[1, 2], label="close", tellwidth=false)
-    on(close.clicks) do n
-        GLMakie.closeall()
-    end
+    autoscale_button(sk_widget, gl_buttons[1, 1])
+    run_button(sk_widget, gl_buttons[1, 2])
+    close_button(gl_buttons[1, 3])
 
-    addOutagesWidget(sk_widget, glOutages)
+    outages_widget(sk_widget, gl_outages)
 
     isnothing(fig) && display(_fig)
     return sk_widget
