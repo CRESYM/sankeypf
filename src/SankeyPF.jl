@@ -12,7 +12,7 @@ using Makie.GeometryBasics
 using Printf
 
 # GraphUtils
-export ELabel, VLabel, e_label_for, PGLibtograph, build_simple_grid, balance!, scale_branch_limits!, check_flow_consistency, incident, incident_signed, opposite, from, to, getbridges, Pocket, create_bridge_to_pocket
+export ELabel, VLabel, e_label_for, PGLibtograph, build_simple_grid, balance!, scale_branch_limits!, check_flow_consistency, incident, incident_signed, opposite, from, to, getbridges, Pocket, create_bridge_to_pocket, BalanceType, all_non_zero_uniform, gen_proportional
 
 # GridCase
 export GridCase, ElementaryCase, RichCase
@@ -21,7 +21,7 @@ export GridCase, ElementaryCase, RichCase
 export dcpf, dcpf!, SA_result, secured_dcpf, flow, violated_branches, max_overload, eval_risk
 
 # DrawSankey
-export pf_sankey, run_button, change_flows_state!
+export pf_sankey, run_button, update_flows!
 
 # Utils
 export create_case
