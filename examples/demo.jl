@@ -2,9 +2,11 @@ using SankeyPF
 using GLMakie
 using MetaGraphsNext
 
+isdir("tmp") || mkpath("tmp")
+
 case = "case14"
 
-rc = create_case(case, 1.)
+rc = create_case(case, 1.0)
 g = rc.gc.g
 
 if case == "case14"
@@ -26,6 +28,7 @@ pf_res = dcpf(rc)
 
 GLMakie.activate!(; focus_on_show=true, title="Sankey Power Flow Demo")
 fig = Figure(size=(800, 500))
+
 
 skWidget = pf_sankey(rc, pf_res.ϕ, pf_res.flows, "tmp/Y_center_$case.csv"; fig=fig[1, 1], is_horizontal=true);
 

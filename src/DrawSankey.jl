@@ -429,8 +429,9 @@ function outages_widget(sk_widget, gl_outages)
         fields = split(part, '-', limit=2)
         if length(fields) == 2
             f, t = strip(fields[1]), strip(fields[2])
-            f = isnothing(tryparse(Int, f)) ? f : tryparse(Int, f)
-            t = isnothing(tryparse(Int, t)) ? t : tryparse(Int, t)
+            f = string(isnothing(tryparse(Int, f)) ? f : tryparse(Int, f))
+            t = string(isnothing(tryparse(Int, t)) ? t : tryparse(Int, t))
+            @info f,t
             return f ≤ t ? (f, t) : (t, f)
         end
         return EMPTYBRANCH
@@ -491,7 +492,7 @@ function outages_widget(sk_widget, gl_outages)
     Label(gl_outages[3, 1], sk_widget.sa_result; valign=:top)
 end
 
-function pf_sankey(rc::RichCase, states::Dict{VLabel,Float64}, flows::Dict{ELabel,Float64}, stack_coord::Dict{VLabel,Float64}, stack_coord_offset::Dict{VLabel,Dict{VLabel,Float64}}, storeYfn=""; outages=Set(ELabel[]), fig=nothing, is_horizontal=true)
+function pf_sankey(rc::RichCase, states::Dict{VLabel,Float64}, flows::Dict{ELabel,Float64}, stack_coord::Dict{VLabel,Float64}, stack_coord_offset::Dict{VLabel,Dict{VLabel,Float64}}, storeYfn=""; outages=Set(ELabel[]), fig=nothing, is_horizontal=true, with_outages=true)
     g = rc.gc.g
 
     _stack_coord = Observable(stack_coord)
@@ -504,7 +505,7 @@ function pf_sankey(rc::RichCase, states::Dict{VLabel,Float64}, flows::Dict{ELabe
     maxpmax = @lift(_create_maxpmax($sfpd, $_flows))
 
     _fig = isnothing(fig) ? Figure(size=(800, 500)) : fig
-    gl_outages = GridLayout(_fig[1:2, 1], tellheight=false, valign=:top)
+    with_outages && (gl_outages = GridLayout(_fig[1:2, 1], tellheight=false, valign=:top))
     ax = Axis(_fig[1, 2])
     gl_store_stack_pos = GridLayout(_fig[1, 3])
     gl_force_layout = GridLayout(_fig[2, 2])
@@ -545,7 +546,7 @@ function pf_sankey(rc::RichCase, states::Dict{VLabel,Float64}, flows::Dict{ELabe
     colsize!(gl_buttons, 2, Fixed(80))
 
 
-    outages_widget(sk_widget, gl_outages)
+    with_outages && outages_widget(sk_widget, gl_outages)
 
     isnothing(fig) && display(_fig)
     return sk_widget
