@@ -4,11 +4,13 @@ using MetaGraphsNext
 
 isdir("tmp") || mkpath("tmp")
 
-case = "case14"
+case, ratio = "case14", 1.
+# case, ratio = "case118", 1.5
 
-rc = create_case(case, 1.0)
+rc = create_case(case, ratio)
 g = rc.gc.g
 
+# tune 14-system to have interesting constraints.
 if case == "case14"
     foreach(e -> g[e...].p_max = 1.1, edge_labels(g))
     g["A"] = -2.34
@@ -28,7 +30,6 @@ pf_res = dcpf(rc)
 
 GLMakie.activate!(; focus_on_show=true, title="Sankey Power Flow Demo")
 fig = Figure(size=(800, 500))
-
 
 skWidget = pf_sankey(rc, pf_res.ϕ, pf_res.flows, "tmp/Y_center_$case.csv"; fig=fig[1, 1], is_horizontal=true);
 
