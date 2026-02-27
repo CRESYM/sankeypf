@@ -176,7 +176,7 @@ function _create_node_from_flows(flows)
 end
 
 function draw_sankey!(ax, flows, maxflows, state_pos, stack_coord, stack_coord_offset, maxpmax, outages, stretch, is_horizontal)
-    # hidedecorations!(ax)
+    hidedecorations!(ax)
 
     _stack_coord = @lift(Dict(bus => val * $stretch for (bus, val) in $stack_coord))
 
