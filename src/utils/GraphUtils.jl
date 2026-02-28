@@ -259,3 +259,23 @@ function create_bridge_to_pocket(g::MetaGraph, bus_orig::VLabel, outages::Vector
     end
     bridge_to_pocket
 end
+
+function create_case(case::String, ratio=nothing)::RichCase
+    project_path = dirname(Base.active_project())
+    buslabels = Function
+    if case == "case14"
+        labs = collect('A':'Z')
+        buslabels = num -> "$(labs[num])"
+    else
+        buslabels = lab -> "$lab"
+    end
+    g = PGLibtograph(case, buslabels)
+
+    !isnothing(ratio) && scale_branch_limits!(g, ratio)
+
+
+    labs = collect(labels(g))
+    balance!(g)
+    bus_orig = labs[findmin(bus -> g[bus], labels(g))[2]]
+    return RichCase(ElementaryCase(g), bus_orig, Dict{Symbol,Any}())
+end

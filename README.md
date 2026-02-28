@@ -112,6 +112,8 @@ Finally, buttons:
 - **Save in SVG**: saves the image in "tmp/sankey_export.svg"
 - **Close**
 
+**Tip**: For large grids (e.g. *case118*), start with a high *align* force and low *repulse* force to encourage alignment, then progressively increase *repulse* and reduce *align*. This typically yields a cleaner and more stable layout.
+
 
 ## 📜 License
 
