@@ -157,10 +157,10 @@ function outages_widget(sk_widget, gl_outages)
         fields = split(part, '-', limit=2)
         if length(fields) == 2
             f, t = strip(fields[1]), strip(fields[2])
-            f = string(isnothing(tryparse(Int, f)) ? f : tryparse(Int, f))
-            t = string(isnothing(tryparse(Int, t)) ? t : tryparse(Int, t))
+            f = isnothing(tryparse(Int, f)) ? f : tryparse(Int, f)
+            t = isnothing(tryparse(Int, t)) ? t : tryparse(Int, t)
             @info f, t
-            return f ≤ t ? (f, t) : (t, f)
+            return f ≤ t ? ("$f", "$t") : ("$t", "$f")
         end
         return EMPTYBRANCH
     end
