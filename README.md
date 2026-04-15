@@ -117,6 +117,7 @@ Finally, buttons:
 ## Citing
 If you use SankeyPF.jl in your research, please cite:
 
+```
 @software{jeanson2026sankeypf,
   author  = {Jeanson, Benoît},
   title   = {sankeypf: a Julia package for visualizing power flow data using interactive Sankey diagrams.},
@@ -124,12 +125,12 @@ If you use SankeyPF.jl in your research, please cite:
   url     = {https://github.com/CRESYM/sankeypf},
   version = {0.1}
 }
+```
 
 
 ## 📜 License
 
 This project is released under the [APACHE 2.0](LICENSE).
-
 
 ## 📧 Contact
 
