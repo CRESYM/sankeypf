@@ -20,16 +20,16 @@ function _band_path(x1, x2, y1, y2, width, is_horizontal)
     end
     return BezierPath(
         [
-        MoveTo(Point(y1 - width2, x1)),
+        MoveTo(Point(y1 - width2, -x1)),
         CurveTo(
-            Point(y1 - width2, (2 * x1 + x2) / 3),
-            Point(y2 - width2, (x1 + 2 * x2) / 3),
-            Point(y2 - width2, x2)),
-        LineTo(Point(y2 + width2, x2)),
+            Point(y1 - width2, -(2 * x1 + x2) / 3),
+            Point(y2 - width2, -(x1 + 2 * x2) / 3),
+            Point(y2 - width2, -x2)),
+        LineTo(Point(y2 + width2, -x2)),
         CurveTo(
-            Point(y2 + width2, (x1 + 2 * x2) / 3),
-            Point(y1 + width2, (2 * x1 + x2) / 3),
-            Point(y1 + width2, x1)),
+            Point(y2 + width2, -(x1 + 2 * x2) / 3),
+            Point(y1 + width2, -(2 * x1 + x2) / 3),
+            Point(y1 + width2, -x1)),
         ClosePath()])
 end
 
@@ -44,9 +44,9 @@ function _triangle_injection(x, y1, y2, width, is_horizontal)
     else
         return BezierPath(
             [
-            MoveTo(Point(y1, x)),
-            LineTo(Point((y1 + y2) / 2, x + width)),
-            LineTo(Point(y2, x)),
+            MoveTo(Point(y1, -x)),
+            LineTo(Point((y1 + y2) / 2, -x - width)),
+            LineTo(Point(y2, -x)),
             ClosePath()])
     end
 end
@@ -78,7 +78,7 @@ function draw_sankey!(ax, flows, maxflows, state_pos, stack_coord, stack_coord_o
         poly!(ax, path, color=col, alpha=0.5, strokewidth=2, strokecolor=strokecol)
 
         alpha = @lift($loadratio ≤ 1 ? 0. : 0.5)
-        path = @lift(_band_path(state_pos[][f], state_pos[][t],
+        path = @lift(_band_path(state_pos[][f], state_pos[][t],   # minus for flows flowing from top to bttom.
             $_stack_coord[f] + stack_coord_offset[][f][t] + (p[] - p_overload[]) / 2,
             $_stack_coord[t] + stack_coord_offset[][t][f] + (p[] - p_overload[]) / 2, p_overload[], is_horizontal))
         poly!(ax, path, color=:red, alpha=alpha)
@@ -91,7 +91,7 @@ function draw_sankey!(ax, flows, maxflows, state_pos, stack_coord, stack_coord_o
         if is_horizontal
             lines!(ax, @lift([$state_pos[bus], $state_pos[bus]]), @lift($_stack_coord[bus] .+ maxpmax[][bus] ./ 2 .* [-1, 1]), linewidth=1, color=:black)
         else
-            lines!(ax, @lift($_stack_coord[bus] .+ maxpmax[][bus] ./ 2 .* [-1, 1]), @lift([$state_pos[bus], $state_pos[bus]]), linewidth=1, color=:black)
+            lines!(ax, @lift($_stack_coord[bus] .+ maxpmax[][bus] ./ 2 .* [-1, 1]), @lift([-$state_pos[bus], -$state_pos[bus]]), linewidth=1, color=:black)
         end
 
         if value > 0
@@ -105,7 +105,7 @@ function draw_sankey!(ax, flows, maxflows, state_pos, stack_coord, stack_coord_o
         if is_horizontal
             text!(ax, @lift($state_pos[bus]), @lift($_stack_coord[bus]); text=bus)
         else
-            text!(ax, @lift($_stack_coord[bus]), @lift($state_pos[bus]); text=bus)
+            text!(ax, @lift($_stack_coord[bus]), @lift(-$state_pos[bus]); text=bus)
         end
     end
 end

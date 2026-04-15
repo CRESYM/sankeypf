@@ -114,6 +114,17 @@ Finally, buttons:
 
 **Tip**: For large grids (e.g. *case118*), start with a high *align* force and low *repulse* force to encourage alignment, then progressively increase *repulse* and reduce *align*. This typically yields a cleaner and more stable layout.
 
+## Citing
+If you use SankeyPF.jl in your research, please cite:
+
+@software{jeanson2026sankeypf,
+  author  = {Jeanson, Benoît},
+  title   = {sankeypf: a Julia package for visualizing power flow data using interactive Sankey diagrams.},
+  year    = {2026},
+  url     = {https://github.com/CRESYM/sankeypf},
+  version = {0.1}
+}
+
 
 ## 📜 License
 

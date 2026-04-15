@@ -4,10 +4,12 @@ const NB_TRANSITION_STEPS = 20
 
 function img_export(sk_widget, filename)
     bb = sk_widget.ax.layoutobservables.computedbbox[]
+    rect = sk_widget.ax.finallimits[]
     sz = (bb.widths[1], bb.widths[2])
     CairoMakie.activate!()
     fig_export = Figure(size=sz)
     ax = Axis(fig_export[1, 1])
+    limits!(ax, rect)
 
     draw_sankey!(ax, sk_widget.flows, sk_widget.maxflows, sk_widget.states, sk_widget.stack_coord, sk_widget.stack_coord_offset,
         sk_widget.maxpmax, sk_widget.outages, sk_widget.stretch, sk_widget.is_horizontal)

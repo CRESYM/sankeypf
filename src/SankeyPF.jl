@@ -8,6 +8,7 @@ using LinearAlgebra
 using SparseArrays
 
 using GLMakie
+using CairoMakie
 using Makie.GeometryBasics
 using Printf
 
